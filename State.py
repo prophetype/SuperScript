@@ -171,10 +171,10 @@ class ImageCheckState(CheckState):
     def __init__(self, parent = None, check_areas = None, check_imgs = None):
         CheckState.__init__(self, parent=parent, check_areas=check_areas)
         self.set_check_images(check_imgs)
-        
     
-    def check_state(self):
-        return State.controller.check_images(self.check_areas, self.check_imgs)
+    
+    def check_state(self, img = None):
+        return State.controller.check_images(self.check_areas, self.check_imgs, img)
     
     def set_check_images(self, imgs):
 
@@ -195,6 +195,7 @@ class TextCheckState(CheckState):
     def check_state(self):
         print("recognizer string:", self.check_texts, self.check_areas)
         return State.controller.check_text(self.check_texts, self.check_areas, self.config)
+
 
 
 

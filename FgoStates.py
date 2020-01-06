@@ -14,6 +14,7 @@ class FgoStartState(ImageCheckClick):
             return True
         else:
             self.controller.click_area(self.check_while_work_areas)
+            return False
 
 
 class FgoBattleState(TextCheckState):
@@ -38,6 +39,7 @@ class FgoBattleState(TextCheckState):
             self.times = [2.5] * len(skills)
         
         self.config = "--psm 6 --oem 3 -c tessedit_char_whitelist=0123456789//"
+        
     
     def reset(self):
         self.skill_state = True
@@ -148,51 +150,56 @@ class TransformState(State):
         self.check_transform += states
     
     def check_state(self):
+
+        img = self.controller.get_screen()
+
         
-        if State.controller.check_images(self.text_transform[0].IMAGE_CHECK_AREAS, self.text_transform[0].IMAGE_CHECK):
+        if State.controller.check_images(self.text_transform[0].IMAGE_CHECK_AREAS, 
+                                         self.text_transform[0].IMAGE_CHECK,
+                                         img):
 
             while True:
-                img = self.controller.get_screen()
-                img = self.controller.extract_img(img, self.text_transform[0].TEXT_CHECK_AREAS)[0]
+                imgs = self.controller.extract_img(img, self.text_transform[0].TEXT_CHECK_AREAS)[0]
+                text = self.controller.recognizer.orc(imgs, "--psm 6 --oem 3 -c tessedit_char_whitelist=0123456789//")
                 print("transforming")
-                text = self.controller.recognizer.orc(img, "--psm 6 --oem 3 -c tessedit_char_whitelist=0123456789//")
                 print("get string:", text)
                 for s in self.text_transform:
                     if s.check_texts[0] == text:
                         self.next_state = s
                         return True
+                img = self.controller.get_screen()
         
         else:
             for i in self.check_transform:
-                if i.check_state():
+                if i.check_state(img):
                     self.next_state = i
                     return True
             
             return False
     
     def work(self):
-        time.sleep(0.3)
+        pass
     
     def run(self):
-        if self.next_state:
-            return self.next_state
-        else:
-            return super().run()
+        temp = self.next_state
+        self.next_state = None
+        return temp
 
 class FgoEndState(WorkState, CheckState):
     def __init__(self, parent = None, check_areas = None, work_areas = None):
         WorkState.__init__(self, parent=parent, work_areas=work_areas)
         CheckState.__init__(self, check_areas=check_areas)
 
-    def check_state(self):
-        img = State.controller.get_screen()
+    def check_state(self, img):
+        if not img:
+            img = State.controller.get_screen()
         img = State.controller.extract_img(img, self.check_areas)[0]
         return self.is_end(img)
 
     def is_end(self, image):
         image = np.array(image)
         size = np.size(image)
-        energy = np.sum(image)/size
+        #energy = np.sum(image)/size
         dark = np.sum(image < 30)/size
         color = np.sum(image > 235)/size
         print("checking end")
@@ -216,17 +223,18 @@ def FgoStateFactory():
                               check_areas = [[1200, 727, 1440, 810], ], 
                               work_areas = [[716, 195, 1297, 320], ],
                               times = 2)
-                              
+
+    support = ImageCheckClick(mission, check_imgs = [path + "\\support.jpg"],
+                                          check_areas= [[1100, 1, 1440, 90]],
+                                          work_areas= [[86, 250, 1189, 389], [1265, 732, 1412, 792]],
+                                          times = [3, 8])      
     
     apple = ImageCheckClick(mission, check_imgs = [path + "\\apple.jpg"],
                                         check_areas = [[320, 250, 500, 460], ],
                                         work_areas = [[348, 304, 1084, 424], ],
                                         times = 2)
     
-    support = ImageCheckClick(mission, check_imgs = [path + "\\support.jpg"],
-                                          check_areas= [[1100, 1, 1440, 90]],
-                                          work_areas= [[86, 250, 1189, 389], [1265, 732, 1412, 792]],
-                                          times = [3, 8])
+    
     apple.add_state(support)
 
 
@@ -301,12 +309,12 @@ def FgoStateFactory():
     cards3 = FgoCardState(battle3)
     cards3.add_state(transform)
 
-    end = FgoEndState(cards3, check_areas=[(129, 475, 1310, 550), (1159, 748, 1367, 780)], work_areas=[(116, 255, 1313, 571)])
+    end = FgoEndState(transform, check_areas=[(129, 475, 1310, 550), (1159, 748, 1367, 780)],
+                      work_areas=[(116, 255, 1313, 571)])
 
 
     transform.add_text_transform([battle1, battle2, battle3])
     transform.add_check_transoform([end])
-
 
     return top
 
