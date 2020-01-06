@@ -68,6 +68,7 @@ class State(object):
                 if s.check_state():
                     State.scanning = False
                     self.scanning_times = 0
+                    self.run_times += 1
                     return s
             idx = random.randint(0, len(self.next) - 1)
             self.scanning_times += 1
@@ -103,7 +104,7 @@ class TopState(State):
         State.set_controller(controller)
     
     def loop(self):
-        while self.next[0].run_times < self.epoch:
+        while self.run_times < self.epoch:
             state = self
             if state.scanning:
                 self.work()
@@ -173,8 +174,8 @@ class ImageCheckState(CheckState):
         self.set_check_images(check_imgs)
     
     
-    def check_state(self, img = None):
-        return State.controller.check_images(self.check_areas, self.check_imgs, img)
+    def check_state(self, img = None, from_souce = False):
+        return State.controller.check_images(self.check_areas, self.check_imgs, img, from_souce)
     
     def set_check_images(self, imgs):
 

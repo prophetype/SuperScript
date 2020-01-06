@@ -84,13 +84,13 @@ class Controller(object):
 #######################################################################
                     #Check method
 #######################################################################
-    def check_images(self, areas = None, images = None, img = None):
+    def check_images(self, areas = None, images = None, img = None, from_img = False):
 
         if len(areas) == len(images):
-            if not img:
+            if not from_img:
                 img = self.get_screen()
             
-            imgs = self.extract_img(img)
+            imgs = self.extract_img(img, areas)
             results = [self.recognizer.find_template(imgs[i], images[i]) for i in range(len(imgs))]
             if None in results:
                 return False
